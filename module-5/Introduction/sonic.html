@@ -26,8 +26,123 @@
   <body class="prevent-select">
     <canvas id="cvs" style="background-color: antiquewhite" width="1024" height="512"></canvas>
   </body>
-  <script defer>
+  <script type="module" defer>
+
+    // Import libraries
+    import {TSpriteCanvas, TSprite} from "libSprite";
+
+    // prettier-ignore
+    const SpriteInfoList = {
+      sonic1: { x: 0, y:   0, width: 102, height: 125, count: 6},
+      sonic2: { x: 0, y: 125, width: 102, height: 125, count: 9},
+      sonic3: { x: 0, y: 250, width: 102, height: 125, count: 9},
+      sonic4: { x: 0, y: 375, width: 102, height:  75, count: 7},
+      sonic5: { x: 0, y: 450, width: 100, height: 130, count: 5},
+      sonic6: { x: 0, y: 575, width: 102, height: 125, count: 3},
+      sonic7: { x: 0, y: 700, width: 102, height: 125, count: 2},
+      sonic8: { x: 0, y: 825, width: 102, height: 125, count: 2},
+      sonic9: { x: 0, y: 950, width: 102, height: 125, count: 4}
+    }
+
+    // Global variables
     const cvs = document.getElementById("cvs");
     const ctx = cvs.getContext("2d");
+    const spcvs=new TSpriteCanvas(cvs);
+    const hero=new TSprite(spcvs,SpriteInfoList.sonic2,0,100);
+    const hero2=new TSprite(spcvs,SpriteInfoList.sonic2,0,0);
+    const hero3=new TSprite(spcvs,SpriteInfoList.sonic1,cvs.width/2,cvs.height/2);
+    let dir=2;
+    let dir2={x:0,y:5};
+    let direction={
+      down:{x:0,y:5},
+      right:{x:5,y:0},
+      up:{x:0,y:-5},
+      left:{x:-5,y:0}
+    }
+
+    // Functions
+    function drawCanvas(){
+      hero.draw();
+      hero2.draw();
+      hero3.draw();
+    }
+    function animate(){
+      hero.x+=dir;
+      if((hero.x>cvs.width-hero.width)||(hero.x+hero.width<0&&dir<0)){
+        dir*=-1;
+        hero.flipHorizontal();
+      }else{
+      }
+    }
+    function animate2(){
+      switch(true) {
+        case hero2.y>cvs.height-hero2.width:
+          hero2.x=0;
+          hero2.y=cvs.height-hero2.height;
+          hero2.rotation-=90;
+          dir2=direction.right;
+          break;
+        case hero2.x>cvs.width-hero2.width:
+          hero2.x=cvs.width-hero2.width;
+          hero2.y=cvs.height-hero2.height;
+          hero2.rotation-=90;
+          dir2=direction.up;
+          hero.hidden=!hero.hidden;
+          break;
+        case hero2.y<0:
+          hero2.y=0;
+          hero2.rotation-=90;
+          dir2=direction.left;
+          break;
+        case hero2.x<0:
+          hero2.x=0
+          hero2.rotation-=90;
+          dir2=direction.down;
+          hero.hidden=!hero.hidden;
+          break;
+        default:
+          break;
+      }
+      hero2.x+=dir2.x
+      hero2.y+=dir2.y
+      
+    }
+
+    function sheetLoaded(){
+      console.log("Sheet Loaded");
+      spcvs.showFramerate=true;
+      spcvs.onDraw=drawCanvas;
+      hero.animationSpeed=45;
+      hero2.animationSpeed=45;
+      hero3.animationSpeed=10;
+      hero2.rotation=90;
+      //hero.flipHorizontal();
+      setInterval(animate, 1);
+      setInterval(animate2,1);
+    }
+    function onKeyDown(event){
+      switch (event.code) {
+        case "ArrowUp":
+          hero3.y-=10;
+          break;
+        case "ArrowRight":
+          hero3.x+=10;
+          break;
+        case "ArrowLeft":
+          hero3.x-=10;
+          break;
+        case "ArrowDown":
+          hero3.y+=10;
+          break;
+        
+        default:
+          break;
+      }
+    }
+
+    // Main application
+    spcvs.loadSpriteImage("sonic_sprite_sheet.png", sheetLoaded);
+    document.addEventListener("keydown", onKeyDown)
+
   </script>
 </html>

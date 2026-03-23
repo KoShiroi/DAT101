@@ -2,10 +2,13 @@
 import { TPoint } from "lib2d";
 import { TSpriteCanvas } from "libSprite";
 import { TGameBoard } from "./GameBoard.mjs";
+import { TTile, createTiles, drawTiles, createMines } from "./tile.js";
+import { TGameInfo } from "./gameInfo.js";
 
 //-----------------------------------------------------------------------------------------
 //----------- variables and object --------------------------------------------------------
 //-----------------------------------------------------------------------------------------
+
 export const SpriteInfoList = {
   Board: {
     TopLeft: { x: 0, y: 0, width: 163, height: 133, count: 1 },
@@ -23,8 +26,8 @@ export const SpriteInfoList = {
 };
 
 const Difficulty = {
-  Level_1: { Tiles: { Row: 10, Col: 10 }, Mines: 5, caption: "Level 1" },
-  Level_2: { Tiles: { Row: 15, Col: 15 }, Mines: 20, caption: "Level 2" },
+  Level_1: { Tiles: { Row: 10, Col: 10 }, Mines: 15, caption: "Level 1" },
+  Level_2: { Tiles: { Row: 15, Col: 15 }, Mines: 45, caption: "Level 2" },
   Level_3: { Tiles: { Row: 20, Col: 30 }, Mines: 99, caption: "Level 3" },
 };
 
@@ -33,27 +36,35 @@ const cvs = document.getElementById("cvs");
 const spcvs = new TSpriteCanvas(cvs);
 const selectDifficulty = document.getElementById("selectDifficulty");
 let gameBoard = null;
+export let gameInfo= null
 
 //-----------------------------------------------------------------------------------------
 //----------- functions -------------------------------------------------------------------
 //-----------------------------------------------------------------------------------------
+
 function loadGame() {
   newGame();
   spcvs.onDraw = drawGame;
 }
 
 //-----------------------------------------------------------------------------------------
+
 export function newGame() {
   cvs.width = gameLevel.Tiles.Col * SpriteInfoList.ButtonTile.width + SpriteInfoList.Board.LeftMiddle.width + SpriteInfoList.Board.RightMiddle.width;
   cvs.height = gameLevel.Tiles.Row * SpriteInfoList.ButtonTile.height + SpriteInfoList.Board.TopMiddle.height + SpriteInfoList.Board.BottomMiddle.height;
   spcvs.updateBoundsRect();
   spcvs.removeAllGUISprites();
+  gameInfo=new TGameInfo(spcvs, SpriteInfoList, new TPoint(0, 0))
   gameBoard = new TGameBoard(spcvs, SpriteInfoList.Board, new TPoint(0, 0));
+  createTiles(spcvs,SpriteInfoList);
+  createMines();
 }
 
 function drawGame() {
   spcvs.clearCanvas();
   gameBoard.draw();
+  drawTiles();
+  gameInfo.draw();
 }
 
 //-----------------------------------------------------------------------------------------

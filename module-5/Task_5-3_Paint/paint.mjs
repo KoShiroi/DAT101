@@ -1,6 +1,7 @@
 "use strict";
 
 import { TMenu, EActionType, EColorType, EShapeType, EStrokeSizeType } from "./menu.js";
+import { newDrawing, deleteShape, moveUp, moveDown } from "./Shape.js"
 
 /*
 📝 TODO: Create a Shape System
@@ -86,7 +87,7 @@ You need to build this file with the following features:
  *    When user clicks a menu button (e.g., "Circle"), this object gets updated
  *    So when drawing a new shape, the app knows which settings to use
  */
-const newShapeType = { ShapeType: EShapeType.Line, FillColor: EColorType.Black, StrokeColor: EColorType.Black, StrokeSize: EStrokeSizeType.Thin };
+export const newShapeType = { ShapeType: EShapeType.Line, FillColor: EColorType.Black, StrokeColor: EColorType.Black, StrokeSize: EStrokeSizeType.Thin };
 
 /**
  * 🎮 CREATE THE MENU TOOLBAR
@@ -97,12 +98,6 @@ const newShapeType = { ShapeType: EShapeType.Line, FillColor: EColorType.Black, 
  * E.g. index {0, 1, 2, 3} for normal, hover, mouse down, disabled states.
  */
 const menu = new TMenu(newShapeType);
-
-// 🖼️ Access the paint canvas and drawing context, move this to your new JavaScript file.
-const cvsPaint = document.getElementById("cvsPaint");
-const ctxPaint = cvsPaint.getContext("2d");
-
-
 
 /**
  * 📢 MENU BUTTON HANDLER
@@ -125,22 +120,26 @@ function menuButtonClick(aEvent) {
   
   // ✅ Update newShapeType based on the button clicked
   // Example: if StrokeColor button clicked → update newShapeType.StrokeColor
-  
+
   switch (actionKey) {
     case "Action":
       // 🎯 Action buttons (New, Eraser, Move Up, Move Down)
       switch (value) {
         case EActionType.New:
           console.log("✨ New button clicked → Clear the canvas!");
+          newDrawing();
           break;
         case EActionType.Eraser:
           console.log("🗑️  Eraser button clicked → Delete selected shape");
+          deleteShape();
           break;
         case EActionType.MoveUp:
           console.log("⬆️  Move Up button clicked → Bring selected shape to front");
+          moveUp();
           break;
         case EActionType.MoveDown:
           console.log("⬇️  Move Down button clicked → Send selected shape to back");
+          moveDown();
           break;
       }
       break;
@@ -165,3 +164,4 @@ function menuButtonClick(aEvent) {
 
 // 🔗 Listen for menu button clicks
 menu.addEventListener("menuButtonClick", menuButtonClick);
+newDrawing();

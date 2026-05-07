@@ -22,6 +22,16 @@ export class TSnake{
     this.#intervalsIDs={ghostID:null};
   }
 
+  newGame(){
+    this.#direction="right";
+    this.#baseState="normal";
+    this.#snake=[{pos:{x:8,y:6},direction:this.#direction,state:this.#baseState}];
+    this.#oldPos=null;
+    if (this.#intervalsIDs.ghostID){
+      this.#intervalsIDs.ghostID.clear();
+    }
+  }
+
   draw(){
     for(let i=0;i<this.#snake.length;i++){
       switch(this.#snake[i].state){

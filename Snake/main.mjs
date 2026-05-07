@@ -2,20 +2,20 @@
 import {TSnake} from "./snake.js"
 
 const cvs=document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const ctx = cvs.getContext("2d");
 
 const SpriteSheet=new Image()
 SpriteSheet.src="apple.png";
 
-export const EGameState={idel:0,playing:1,pause:2,gameOver:3,state:0}
+export const EGameState={idle:0,playing:1,pause:2,gameOver:3,state:0}
 const snake=new TSnake(ctx);
 snake.snakeSkin="default";
 
 SpriteSheet.onload=function(){
-  randomizeApple();
-  drawGame();
-  animateGame();
+  newGame();
 };
+
+const setTimeoutID={animateGameID:null,snakeDeathID:null};
 
 export const board={
   cellSize:32,
@@ -34,6 +34,18 @@ cvs.width=board.cellSize*board.cols;
 cvs.height=board.cellSize*board.rows;
 
 //functions--------------------------------------------------
+function newGame(){
+  snake.newGame();
+  randomizeApple();
+  if(setTimeoutID.animateGameID){
+    clearTimeout(setTimeoutID.animateGameID);
+  }if(setTimeoutID.snakeDeathID){
+    clearInterval(setTimeoutID.snakeDeathID);
+  }
+  drawGame();
+  animateGame();
+}
+
 function drawGame(){
   for(let i=0;i<(board.cols*board.rows);i++){
     ctx.fillStyle="lightgray";
@@ -58,7 +70,7 @@ function animateGame(){
       console.log("Collision");
       snake.setState("dead");
       EGameState.state=EGameState.gameOver;
-      setInterval(()=>{snake.passDown();drawGame();},2000/snake.length);
+      setTimeoutID.snakeDeathID=setInterval(()=>{snake.passDown();drawGame();},2000/snake.length);
     }
     if(snake.pos.x==apple.pos.x && snake.pos.y==apple.pos.y){
       if(apple.type=="ghost"){
@@ -73,7 +85,7 @@ function animateGame(){
     }
   }
   drawGame();
-  setTimeout(animateGame,500/snake.length**0.4);
+  setTimeoutID.animateGameID=setTimeout(animateGame,500/snake.length**0.4);
 }
 
 function randomizeApple(){
@@ -137,7 +149,7 @@ function onKeyDown(aEvent) {
 
     case "Space":
       switch(EGameState.state){
-        case EGameState.idel:
+        case EGameState.idle:
           EGameState.state=EGameState.playing;
           break;
         case EGameState.playing:
@@ -147,6 +159,10 @@ function onKeyDown(aEvent) {
         case EGameState.pause:
           EGameState.state=EGameState.playing;
           snake.pause();
+          break;
+        case EGameState.gameOver:
+          EGameState.state=EGameState.playing;
+          newGame();
           break;
       }
       break;

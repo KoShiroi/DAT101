@@ -7,7 +7,7 @@ const ctx = canvas.getContext("2d");
 const SpriteSheet=new Image()
 SpriteSheet.src="apple.png";
 
-export const EGameState={idel:0,playing:1,pause:2,gameOver:3,state:1}
+export const EGameState={idel:0,playing:1,pause:2,gameOver:3,state:0}
 const snake=new TSnake(ctx);
 snake.snakeSkin="default";
 
@@ -62,7 +62,9 @@ function animateGame(){
     }
     if(snake.pos.x==apple.pos.x && snake.pos.y==apple.pos.y){
       if(apple.type=="ghost"){
-        console.log("ghost apple");
+        if(snake.state!="ghost"){
+          console.log("Ability: ghost");
+        }
         snake.setState("ghost",true);
         snake.resetGhostTimer()
       }
@@ -85,11 +87,33 @@ function randomizeApple(){
     apple.type="ghost";
     apple.color="rgba(0,0,85,0.5)";
   }
-  //console.log(apple.pos)
+}
+
+export function setGameTimeout(handeler, timeOut){
+  let remaining=timeOut;
+  let start=Date.now();
+  let timerID;
+
+  function pause(){
+    clearTimeout(timerID);
+    remaining-=Date.now()-start;
+    console.log("Timeout: pause");
+  }
+  function resume(){
+    start=Date.now();
+    timerID=setTimeout(handeler,remaining);
+    console.log("Timeout: resume");
+  }
+  function clear(){
+    clearTimeout(timerID);
+  }
+  timerID=setTimeout(handeler,remaining);
+
+  return {pause,resume,clear};
 }
 
 function onKeyDown(aEvent) {
-  switch (aEvent.code) {
+  switch(aEvent.code){
     case "ArrowUp":
       if(snake.direction!="down"){
         snake.newDirection="up";
@@ -110,10 +134,38 @@ function onKeyDown(aEvent) {
         snake.newDirection="left";
       }
       break;
+
+    case "Space":
+      switch(EGameState.state){
+        case EGameState.idel:
+          EGameState.state=EGameState.playing;
+          break;
+        case EGameState.playing:
+          EGameState.state=EGameState.pause;
+          snake.pause();
+          break;
+        case EGameState.pause:
+          EGameState.state=EGameState.playing;
+          snake.pause();
+          break;
+      }
+      break;
+
+    case "Digit1":
+      snake.snakeSkin=1;
+      drawGame()
+      break;
+    case "Digit2":
+      snake.snakeSkin=2;
+      drawGame()
+      break;
+    case "Digit3":
+      snake.snakeSkin=3;
+      drawGame()
+      break;
+
     default:
       console.log(aEvent.code);
-      let allSkins=["default","black&yellow","murasaki"]
-      snake.snakeSkin=allSkins[Math.floor(Math.random()*allSkins.length)];
       break;
   }
 }

@@ -1,6 +1,6 @@
 "use strict";
 
-import {board, EGameState} from "./main.mjs"
+import {board, EGameState, setGameTimeout} from "./main.mjs"
 
 export class TSnake{
   #ctx;
@@ -61,7 +61,7 @@ export class TSnake{
   animate(){
     this.passDown();
     if(this.#baseState=="ghost"&&!this.#intervalsIDs.ghostID){
-      this.#intervalsIDs.ghostID=setTimeout(()=>{
+      this.#intervalsIDs.ghostID=setGameTimeout(()=>{
         if(EGameState.state!=EGameState.gameOver){
           this.setState("normal");
           this.#intervalsIDs.ghostID=null;
@@ -141,8 +141,10 @@ export class TSnake{
     }
   }
   resetGhostTimer(){
-    clearTimeout(this.#intervalsIDs.ghostID);
-    this.#intervalsIDs.ghostID=null;
+    if(this.#intervalsIDs.ghostID){
+      this.#intervalsIDs.ghostID.clear();
+      this.#intervalsIDs.ghostID=null;
+    }
   }
   grabColor(color){
     let splitColor=color.split(/[,()]/);
@@ -163,12 +165,21 @@ export class TSnake{
     ${splitStart.a+(splitEnd.a-splitStart.a)*t}
     )`
   }
+  pause(){
+    if(EGameState.state==EGameState.pause && this.#intervalsIDs.ghostID){
+      this.#intervalsIDs.ghostID.pause();
+    }
+    if(EGameState.state==EGameState.playing && this.#intervalsIDs.ghostID){
+      this.#intervalsIDs.ghostID.resume();
+    }
+  }
 
   set newDirection(direction){
     this.#direction=direction;
   }
   set snakeSkin(skin){
     switch(skin){
+      case 1:
       case "default":
         this.#snakeColor={
           base:"rgba(0,127.5,0,1)",
@@ -184,6 +195,7 @@ export class TSnake{
         };
         break;
       
+      case 2:
       case "black&yellow":
         this.#snakeColor={
           base:"rgba(51,51,51,1)",
@@ -199,6 +211,7 @@ export class TSnake{
         };
         break;
       
+      case 3:
       case "murasaki":
         this.#snakeColor={
           base:"rgba(51,51,51,1)",
@@ -230,5 +243,8 @@ export class TSnake{
   }
   get length(){
     return this.#snake.length;
+  }
+  get state(){
+    return this.#baseState;
   }
 }

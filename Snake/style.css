@@ -6,3 +6,13 @@ canvas{
   background-color:plum;
   border:5px solid;
 }
+div{
+  display:inline-block;
+  background-color:rgba(0, 0, 0, 0.5);;
+  color:white;
+  padding:1em;
+}
+p{
+  background-color:transparent;
+  margin:1em;
+}

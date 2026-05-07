@@ -7,6 +7,8 @@ import { TSpriteCanvas } from "libSprite";
 import { TGameBoard, GameBoardSize, TBoardCell } from "./gameBoard.js";
 import { TSnake, EDirection } from "./snake.js";
 import { TBait } from "./bait.js";
+import { TMenu } from "./menu.js";
+import { TPoint } from "lib2d";
 
 //-----------------------------------------------------------------------------------------
 //----------- variables and object --------------------------------------------------------
@@ -33,11 +35,13 @@ export const SheetData = {
   Number:   { x:   0, y: 560, width:  81, height:  86, count: 10 },
 };
 
+export const center=new TPoint((GameBoardSize.Cols*SheetData.Head.width)/2,(GameBoardSize.Rows*SheetData.Head.height)/2)
 export const GameProps = {
   gameBoard: null,
   gameStatus: EGameStatus.Idle,
   snake: null,
-  bait: null
+  bait: null,
+  menu: null
 };
 
 //------------------------------------------------------------------------------------------
@@ -48,13 +52,20 @@ export function newGame() {
   GameProps.gameBoard = new TGameBoard();
   GameProps.snake = new TSnake(spcvs, new TBoardCell(5, 5)); // Initialize snake with a starting position
   GameProps.bait = new TBait(spcvs); // Initialize bait with a starting position
-  gameSpeed = 4; // Reset game speed
+  gameSpeed = 0; // Reset game speed
+  GameProps.gameStatus = EGameStatus.Playing;
+}
+export function returnHome(){
+  GameProps.gameStatus=EGameStatus.Idle
 }
 
 export function baitIsEaten() {
 
-  console.log("Bait eaten!");
+  console.log("Bait eaten! +"+GameProps.bait.value);
   /* Logic to increase the snake size and score when bait is eaten */
+  GameProps.snake.increaseSnake();
+  GameProps.menu.score=GameProps.menu.score+GameProps.bait.value;
+  GameProps.bait.update();
 
   increaseGameSpeed(); // Increase game speed
 }
@@ -67,16 +78,16 @@ export function baitIsEaten() {
 function loadGame() {
   cvs.width = GameBoardSize.Cols * SheetData.Head.width;
   cvs.height = GameBoardSize.Rows * SheetData.Head.height;
+  console.log(cvs.width)
 
-  GameProps.gameStatus = EGameStatus.Playing; // change game status to Idle
+  GameProps.gameStatus = EGameStatus.Idle; // change game status to Idle
 
   /* Create the game menu here */ 
-
-  newGame(); // Call this function from the menu to start a new game, remove this line when the menu is ready
+  GameProps.menu=new TMenu(spcvs,SheetData);
 
   requestAnimationFrame(drawGame);
   console.log("Game canvas is rendering!");
-  hndUpdateGame = setInterval(updateGame, 1000 / gameSpeed); // Update game every 1000ms / gameSpeed
+  hndUpdateGame = setTimeout(updateGame, 1000/(gameSpeed+5)**0.75); // Update game every 1000/(gameSpeed+3)**0.6
   console.log("Game canvas is updating!");
 }
 
@@ -91,6 +102,8 @@ function drawGame() {
       GameProps.snake.draw();
       break;
   }
+
+  GameProps.menu.draw()
   // Request the next frame
   requestAnimationFrame(drawGame);
 }
@@ -102,15 +115,18 @@ function updateGame() {
 
       if (!GameProps.snake.update()) {
         GameProps.gameStatus = EGameStatus.GameOver;
+        GameProps.menu.gameOver();
         console.log("Game over!");
       }
       break;
   }
+  setTimeout(updateGame, 1000/(gameSpeed+5)**0.75);
 }
 
 function increaseGameSpeed() {
   /* Increase game speed logic here */
-  console.log("Increase game speed!");
+  gameSpeed += 1
+  console.log("Increase game speed!",1000/(gameSpeed+5)**0.75);
 }
 
 
@@ -135,7 +151,11 @@ function onKeyDown(event) {
     case " ":
       console.log("Space key pressed!");
       /* Pause the game logic here */
-      
+      if(GameProps.gameStatus==EGameStatus.Playing){
+        GameProps.gameStatus=EGameStatus.Pause;
+      }else if(GameProps.gameStatus==EGameStatus.Pause){
+        GameProps.gameStatus=EGameStatus.Playing;
+      }
       break;
     default:
       console.log(`Key pressed: "${event.key}"`);

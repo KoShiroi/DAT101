@@ -24,7 +24,9 @@ class TSnakePart extends TSprite {
     this.boardCell = aBoardCell;
     let boardCellInfo = GameProps.gameBoard.getCell(aBoardCell.row, aBoardCell.col);
     this.direction = boardCellInfo.direction;
-    boardCellInfo.infoType = EBoardCellInfoType.Snake;
+    if(aSpriteInfo.y!==76){ //identefy if the object is made with a tail exlusiv value
+      boardCellInfo.infoType = EBoardCellInfoType.Snake; // only set it if not the object is the tail
+    }
     this.index = this.direction;
   }
 
@@ -79,6 +81,7 @@ class TSnakeHead extends TSnakePart {
       baitIsEaten();
     }else{
       /* Decrease the score if the snake head is not on a bait cell */
+      //i oppgaven blir det sagt at det skal være besert på tid ikke celler så har gjort det
     }
     boardCellInfo.infoType = EBoardCellInfoType.Snake; // Set the cell to Snake
     return true; // No collision, continue
@@ -219,6 +222,7 @@ export class TSnake {
   #head = null;
   #body = null;
   #tail = null;
+  #clonePart=null;
   constructor(aSpriteCanvas, aBoardCell) {
     this.#head = new TSnakeHead(aSpriteCanvas, aBoardCell);
     let col = aBoardCell.col - 1;
@@ -244,7 +248,12 @@ export class TSnake {
       for (let i = 0; i < this.#body.length; i++) {
         this.#body[i].update();
       }
-      this.#tail.update();  
+      if(this.#clonePart===null){
+        this.#tail.update(); 
+      }else{
+        this.#body.push(this.#clonePart);
+        this.#clonePart=null;
+      }
     }else if(!this.#isDead){
       this.#isDead = true;
       return false; // Collision detected, do not continue
@@ -255,4 +264,8 @@ export class TSnake {
   setDirection(aDirection) {
     this.#head.setDirection(aDirection);
   } // setDirection
+
+  increaseSnake(){
+    this.#clonePart=this.#body[this.#body.length-1].clone();
+  }
 }

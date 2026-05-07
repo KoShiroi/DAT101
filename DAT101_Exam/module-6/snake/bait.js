@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------------------------
 import { TSprite } from "libSprite";
 import { TPoint } from "lib2d";
-import { GameProps, SheetData } from "./game.mjs";
+import { EGameStatus, GameProps, SheetData } from "./game.mjs";
 import { TBoardCell, EBoardCellInfoType } from "./gameBoard.js";
 
 //------------------------------------------------------------------------------------------
@@ -13,6 +13,8 @@ import { TBoardCell, EBoardCellInfoType } from "./gameBoard.js";
 
 export class TBait extends TSprite {
   #boardCell = null;
+  #pointValue;
+  #intervalID;
   constructor(aSpriteCanvas) {
     const pos = new TPoint(0, 0);
     super(aSpriteCanvas, SheetData.Bait, pos.x, pos.y);
@@ -22,6 +24,7 @@ export class TBait extends TSprite {
 
   update() {
     // Move the bait to a random empty cell on the game board
+    this.#pointValue=5;
     do{
       this.#boardCell.col = Math.floor(Math.random() * GameProps.gameBoard.cols);
       this.#boardCell.row = Math.floor(Math.random() * GameProps.gameBoard.rows);
@@ -30,6 +33,22 @@ export class TBait extends TSprite {
     this.y = this.#boardCell.row * this.spi.height;
     // Update the bait cell info type to Bait
     GameProps.gameBoard.getCell(this.#boardCell.row, this.#boardCell.col).infoType = EBoardCellInfoType.Bait
+    clearInterval(this.#intervalID);
+    this.#intervalID=setInterval(this.pointDeduction.bind(this),2000)
+    GameProps.menu.appleScore=this.#pointValue;
   } // End of update
 
+  pointDeduction(){
+    if(GameProps.gameStatus===EGameStatus.Playing){
+      this.#pointValue-=1;
+      GameProps.menu.appleScore=this.#pointValue;
+      console.log("apple value reduced");
+    }
+    if(this.#pointValue===1||GameProps.gameStatus===EGameStatus.GameOver||GameProps.gameStatus===EGameStatus.Idle){
+      clearInterval(this.#intervalID);
+    }
+  }
+  get value(){
+    return this.#pointValue;
+  }
 }

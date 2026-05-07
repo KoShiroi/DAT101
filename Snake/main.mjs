@@ -1,0 +1,122 @@
+"use strict";
+import {TSnake} from "./snake.js"
+
+const cvs=document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const SpriteSheet=new Image()
+SpriteSheet.src="apple.png";
+
+export const EGameState={idel:0,playing:1,pause:2,gameOver:3,state:1}
+const snake=new TSnake(ctx);
+snake.snakeSkin="default";
+
+SpriteSheet.onload=function(){
+  randomizeApple();
+  drawGame();
+  animateGame();
+};
+
+export const board={
+  cellSize:32,
+  cols:24,
+  rows:18
+};
+
+const apple={
+  pos:{x:0,y:0},
+  size:board.cellSize/2,
+  type:"normal",
+  color:null
+};
+
+cvs.width=board.cellSize*board.cols;
+cvs.height=board.cellSize*board.rows;
+
+//functions--------------------------------------------------
+function drawGame(){
+  for(let i=0;i<(board.cols*board.rows);i++){
+    ctx.fillStyle="lightgray";
+
+    if((Math.floor(i/board.cols)+i)%2==0){
+      ctx.fillStyle="white";
+    }
+
+    ctx.fillRect(board.cellSize*(i%board.cols),board.cellSize*(Math.floor(i/board.cols)),board.cellSize,board.cellSize);
+  }
+
+  ctx.fillStyle=apple.color;
+  ctx.fillRect(board.cellSize*apple.pos.x+apple.size/2,board.cellSize*apple.pos.y+apple.size/2,apple.size,apple.size)
+
+  snake.draw();
+}
+
+function animateGame(){
+  if(EGameState.state==EGameState.playing){
+    snake.animate();
+    if(snake.checkCollision()){
+      console.log("Collision");
+      snake.setState("dead");
+      EGameState.state=EGameState.gameOver;
+      setInterval(()=>{snake.passDown();drawGame();},2000/snake.length);
+    }
+    if(snake.pos.x==apple.pos.x && snake.pos.y==apple.pos.y){
+      if(apple.type=="ghost"){
+        console.log("ghost apple");
+        snake.setState("ghost",true);
+        snake.resetGhostTimer()
+      }
+      randomizeApple();
+      snake.increaseLength();
+    }
+  }
+  drawGame();
+  setTimeout(animateGame,500/snake.length**0.4);
+}
+
+function randomizeApple(){
+  do{
+    apple.pos.x=Math.floor(Math.random()*board.cols);
+    apple.pos.y=Math.floor(Math.random()*board.rows);
+  }while(snake.onSnake(apple.pos))
+  apple.type="normal";
+  apple.color="rgba(170,0,0,1)";
+  if(Math.random()>0.8){
+    apple.type="ghost";
+    apple.color="rgba(0,0,85,0.5)";
+  }
+  //console.log(apple.pos)
+}
+
+function onKeyDown(aEvent) {
+  switch (aEvent.code) {
+    case "ArrowUp":
+      if(snake.direction!="down"){
+        snake.newDirection="up";
+      };
+      break;
+    case "ArrowRight":
+      if(snake.direction!="left"){
+        snake.newDirection="right";
+      }
+      break;
+    case "ArrowDown":
+      if(snake.direction!="up"){
+        snake.newDirection="down";
+      }
+      break;
+    case "ArrowLeft":
+      if(snake.direction!="right"){
+        snake.newDirection="left";
+      }
+      break;
+    default:
+      console.log(aEvent.code);
+      let allSkins=["default","black&yellow","murasaki"]
+      snake.snakeSkin=allSkins[Math.floor(Math.random()*allSkins.length)];
+      break;
+  }
+}
+
+//event listener----------------------------------------------------------------------
+document.addEventListener("keydown", onKeyDown);

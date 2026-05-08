@@ -1,6 +1,6 @@
 "use strict";
 
-import {board, EGameState, setGameTimeout} from "./main.mjs"
+import {board, EGameState, portals, setGameTimeout} from "./main.mjs"
 
 export class TSnake{
   #ctx;
@@ -11,21 +11,25 @@ export class TSnake{
   #snakeEyes;
   #oldPos;
   #intervalsIDs;
+  #tpCoords;
+  #justTeleported;
   constructor(ctx){
     this.#ctx=ctx;
     this.#direction="right";
     this.#baseState="normal";
-    this.#snake=[{pos:{x:8,y:6},direction:this.#direction,state:this.#baseState}];
+    this.#snake=[{pos:{x:8,y:6},direction:this.#direction,state:this.#baseState,tp:null}];
     this.#snakeColor={base:"rgba(0,127.5,0,1)",stripe:null,gradient:null,intestity:null,offset:null}
     this.#snakeEyes={size:8,spacing:8,color:"black"};
     this.#oldPos=null;
     this.#intervalsIDs={ghostID:null};
+    this.#tpCoords=null;
+    this.#justTeleported=false;
   }
 
   newGame(){
     this.#direction="right";
     this.#baseState="normal";
-    this.#snake=[{pos:{x:8,y:6},direction:this.#direction,state:this.#baseState}];
+    this.#snake=[{pos:{x:8,y:6},direction:this.#direction,state:this.#baseState,tp:null}];
     this.#oldPos=null;
     if (this.#intervalsIDs.ghostID){
       this.#intervalsIDs.ghostID.clear();
@@ -79,7 +83,14 @@ export class TSnake{
       },5000)
     }
     this.#snake.forEach(e=>{
-      this.#oldPos={pos:{x:e.pos.x,y:e.pos.y},direction:e.direction,state:e.state};
+      this.#oldPos={pos:{x:e.pos.x,y:e.pos.y},direction:e.direction,state:e.state,tp:e.tp};
+      if(e.tp){
+        e.pos.x=e.tp.x;
+        e.pos.y=e.tp.y;
+        this.#justTeleported=true;
+        this.#tpCoords=null;
+        return;
+      }
       switch(e.direction){
         case "up":
           e.pos.y--
@@ -97,6 +108,13 @@ export class TSnake{
           break;
       }
     });
+    let onPortal=false
+    portals.forEach(e=>{
+      if(e.exit.onPortal(this.pos)||e.entrance.onPortal(this.pos)){
+        onPortal=true
+      }
+    });
+    if(!onPortal){this.#justTeleported=false}
   }
 
   passDown(){
@@ -105,6 +123,7 @@ export class TSnake{
         if(EGameState.state==EGameState.playing){
           this.#snake[i].direction=this.#snake[i-1].direction;
           this.#snake[i].state=this.#snake[i-1].state;
+          this.#snake[i].tp=this.#snake[i-1].tp;
         }else if(this.#snake[i-1].state=="dead"){
           this.#snake[i].state=this.#snake[i-1].state;
         }
@@ -113,6 +132,7 @@ export class TSnake{
         if(EGameState.state==EGameState.playing){
           this.#snake[i].direction=this.#direction;
           this.#snake[i].state=this.#baseState;
+          this.#snake[i].tp=this.#tpCoords;
         }else if(this.#baseState=="dead"){
           this.#snake[i].state=this.#baseState;
         }
@@ -243,7 +263,8 @@ export class TSnake{
         break;
     }
   }
-  get upToDate(){
+  set tp(pos){
+    this.#tpCoords=pos;
   }
   get direction(){
     return this.#snake[0].direction;
@@ -256,5 +277,8 @@ export class TSnake{
   }
   get state(){
     return this.#baseState;
+  }
+  get justTeleported(){
+    return this.#justTeleported;
   }
 }

@@ -6,13 +6,17 @@ canvas{
   background-color:plum;
   border:5px solid;
 }
-div{
+#all{
   display:inline-block;
   background-color:rgba(0, 0, 0, 0.5);;
   color:white;
-  padding:1em;
+  padding:0.5em;
+}
+#info{
+  background-color:transparent;
+  display:flex;
 }
 p{
   background-color:transparent;
-  margin:1em;
+  margin:0.5em;
 }

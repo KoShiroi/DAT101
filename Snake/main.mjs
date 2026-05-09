@@ -72,9 +72,17 @@ export function drawGame(){
     if(e.destination){
       fillOnAngle({x:e.destination.x+0.5,y:e.destination.y+0.5},{x:8,y:8},45,"rgba(170,0,170,0.5)");
     }
+    /*ctx.fillStyle="rgba(51,51,51,1)"; //apple stem
+    let size={x:4,y:6}
+    ctx.fillRect(board.cellSize*e.pos.x+(board.cellSize/2-size.x/2),board.cellSize*e.pos.y+e.size/2-size.y/2,size.x,size.y);*/ //did not like it
   });
 
   snake.draw();
+
+  if(EGameState.state==EGameState.pause){
+    ctx.fillStyle="rgba(0,0,0,0.25)"
+    ctx.fillRect(0,0,canvas.width,canvas.height)
+  }
 }
 
 function animateGame(){
@@ -111,7 +119,11 @@ function animateGame(){
       snake.setState("dead");
       EGameState.state=EGameState.gameOver;
       setTimeoutID.snakeDeathID=setInterval(()=>{snake.passDown();drawGame();},2000/snake.length);
-      console.log(`Score: ${snake.length}`)
+      console.log(`Score: ${snake.length}`);
+      if(!localStorage.getItem("score")||Number(localStorage.getItem("score"))<snake.length){
+        localStorage.setItem('score',snake.length);
+      }
+      console.log(`HightScore: ${localStorage.getItem("score")}`);
       if(snake.length>=board.cols*board.rows){
         console.log("you win!")
       }
@@ -267,10 +279,12 @@ function onKeyDown(aEvent) {
         case EGameState.playing:
           EGameState.state=EGameState.pause;
           snake.pause();
+          drawGame();
           break;
         case EGameState.pause:
           EGameState.state=EGameState.playing;
           snake.pause();
+          drawGame();
           break;
         case EGameState.gameOver:
           EGameState.state=EGameState.playing;
@@ -292,10 +306,30 @@ function onKeyDown(aEvent) {
       drawGame();
       break;
     case "Digit4":
-      snake.tp={x:8,y:9};
+      snake.snakeSkin=4;
       drawGame();
       break;
-
+    case "Digit5":
+      snake.snakeSkin=5;
+      drawGame();
+      break;
+    case "Digit6":
+      snake.snakeSkin=6;
+      drawGame();
+      break;
+    case "Digit7":
+      snake.snakeSkin=7;
+      drawGame();
+      break;
+    case "Digit8":
+      snake.snakeSkin=8;
+      drawGame();
+      break;
+    case "Digit9":
+      snake.snakeSkin=9;
+      drawGame();
+      break;
+    
     default:
       console.log(aEvent.code);
       break;
@@ -304,3 +338,10 @@ function onKeyDown(aEvent) {
 
 //event listener----------------------------------------------------------------------
 document.addEventListener("keydown", onKeyDown);
+document.addEventListener("DOMContentLoaded", () => {
+  window.clearLocalStorage = function () {
+    if(!confirm("are you sure")){return}
+    localStorage.clear();
+    console.log("localStorage cleared");
+  };
+});

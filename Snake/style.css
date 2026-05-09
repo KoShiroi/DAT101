@@ -32,3 +32,6 @@ p{
   display:inline-block;
   color:rgba(170,0,170,1)
 }
+button{
+  margin:0.5em;
+}

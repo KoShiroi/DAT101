@@ -1,6 +1,6 @@
 "use strict";
 
-import {board, EGameState, portals, setGameTimeout} from "./main.mjs"
+import {board, EGameState, portals, setGameTimeout, snake} from "./main.mjs"
 
 export class TSnake{
   #ctx;
@@ -240,6 +240,73 @@ export class TSnake{
         break;
       
       case 3:
+      case "firefly?":
+        this.#snakeColor={
+          base:"rgba(51,51,51,1)",
+          stripe:"rgba(204,170,0,1)",
+          gradient:"rgba(170,170,85,1)",
+          get intestity(){return snake.length},
+          offset:1
+        }
+        this.#snakeEyes={
+          size:8,
+          spacing:8,
+          color:"rgba(170,170,170,1)"
+        };
+        break;
+      
+      case 4:
+      case "hightscore":
+        this.#snakeColor={
+          base:"rgba(0,127.5,0,1)",
+          stripe:"rgba(204,204,0,1)",
+          gradient:null,
+          get intestity(){return board.cols*board.rows},
+          get offset(){return Math.min(1-Number(localStorage.getItem("score")),0)}
+        }
+        this.#snakeEyes={
+          size:8,
+          spacing:8,
+          color:"rgba(204,204,0,1)"
+        };
+        break;
+      
+      case 5:
+      case "RGBgamer":
+        let col={r:1,g:0,b:0,amount:0.02,phase:0} //sice it is based on changing every draw. portals that increase draw messes with it
+        this.#snakeColor={ //its not a bug it is a feature. snake is going in hyper drive/warp
+          get base(){
+            if(col.phase==0){
+                col.r-=col.amount
+                col.g+=col.amount
+                if(col.r<=0){col.r=0;col.phase=1}
+            }
+            else if(col.phase==1){
+                col.g-=col.amount
+                col.b+=col.amount
+                if(col.g<=0){col.g=0;col.phase=2}
+            }
+            else if(col.phase==2){
+                col.b-=col.amount
+                col.r+=col.amount
+                if(col.b<=0){col.b=0;col.phase=0}
+            }
+
+            return `rgba(${255 * col.r}, ${255 * col.g}, ${255 * col.b}, 1)`
+          },
+          stripe:null,
+          gradient:null,
+          intestity:0,
+          offset:0
+        }
+        this.#snakeEyes={
+          size:8,
+          spacing:8,
+          color:"rgba(51,51,51,1)"
+        };
+        break;
+
+      case 9:
       case "murasaki":
         this.#snakeColor={
           base:"rgba(51,51,51,1)",

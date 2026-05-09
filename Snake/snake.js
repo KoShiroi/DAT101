@@ -87,34 +87,32 @@ export class TSnake{
       if(e.tp){
         e.pos.x=e.tp.x;
         e.pos.y=e.tp.y;
-        this.#justTeleported=true;
-        this.#tpCoords=null;
-        return;
-      }
-      switch(e.direction){
-        case "up":
-          e.pos.y--
-          break;
-        case "right":
-          e.pos.x++
-          break;
-        case "down":
-          e.pos.y++
-          break;
-        case "left":
-          e.pos.x--
-          break;
-        default:
-          break;
-      }
-    });
-    let onPortal=false
-    portals.forEach(e=>{
-      if(e.exit.onPortal(this.pos)||e.entrance.onPortal(this.pos)){
-        onPortal=true
+        if(this.#snake[0].tp){
+          this.#justTeleported=2;
+          this.#tpCoords=null;
+        }
+      }else{
+        switch(e.direction){
+          case "up":
+            e.pos.y--
+            break;
+          case "right":
+            e.pos.x++
+            break;
+          case "down":
+            e.pos.y++
+            break;
+          case "left":
+            e.pos.x--
+            break;
+          default:
+            break;
+        }
       }
     });
-    if(!onPortal){this.#justTeleported=false}
+    if(this.#justTeleported>0){
+      this.#justTeleported--;
+    }
   }
 
   passDown(){
@@ -279,6 +277,6 @@ export class TSnake{
     return this.#baseState;
   }
   get justTeleported(){
-    return this.#justTeleported;
+    return this.#justTeleported>0;
   }
 }

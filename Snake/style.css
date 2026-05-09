@@ -7,10 +7,10 @@ canvas{
   border:5px solid;
 }
 #all{
-  display:inline-block;
   background-color:rgba(0, 0, 0, 0.5);;
   color:white;
   padding:0.5em;
+  display:inline-block;
 }
 #info{
   background-color:transparent;
@@ -19,4 +19,16 @@ canvas{
 p{
   background-color:transparent;
   margin:0.5em;
+}
+.blue{
+  display:inline-block;
+  color:rgba(0,0,212.5,1)
+}
+.yellow{
+  display:inline-block;
+  color:rgba(170,170,0,1)
+}
+.purple{
+  display:inline-block;
+  color:rgba(170,0,170,1)
 }

@@ -70,7 +70,7 @@ export function drawGame(){
     ctx.fillStyle=e.color;
     ctx.fillRect(board.cellSize*e.pos.x+e.size/2,board.cellSize*e.pos.y+e.size/2,e.size,e.size);
     if(e.destination){
-      fillOnAngle({x:e.destination.x+0.5,y:e.destination.y+0.5},{x:8,y:8},45,"rgba(170,0,170,0.25)");
+      fillOnAngle({x:e.destination.x+0.5,y:e.destination.y+0.5},{x:8,y:8},45,"rgba(170,0,170,0.5)");
     }
   });
 
@@ -80,9 +80,13 @@ export function drawGame(){
 function animateGame(){
   if(EGameState.state==EGameState.playing){
     portals.forEach(e=>{
-      if(!snake.justTeleported&&snake.pos.x==e.entrance.pos.x&&snake.pos.y==e.entrance.pos.y){
+      let short={
+        entrance:snake.pos.x==e.entrance.pos.x&&snake.pos.y==e.entrance.pos.y,
+        exit:snake.pos.x==e.exit.pos.x&&snake.pos.y==e.exit.pos.y
+      }
+      if(!snake.justTeleported&&short.entrance){
         snake.tp=e.entrance.destination;
-      }else if(!snake.justTeleported&&snake.pos.x==e.exit.pos.x&&snake.pos.y==e.exit.pos.y){
+      }else if(!snake.justTeleported&&short.exit){
         snake.tp=e.exit.destination;
       }
     })
@@ -108,43 +112,46 @@ function animateGame(){
       EGameState.state=EGameState.gameOver;
       setTimeoutID.snakeDeathID=setInterval(()=>{snake.passDown();drawGame();},2000/snake.length);
       console.log(`Score: ${snake.length}`)
+      if(snake.length>=board.cols*board.rows){
+        console.log("you win!")
+      }
     }
     apples.forEach(e=>{
       let canDelete=true;
       if(snake.pos.x==e.pos.x && snake.pos.y==e.pos.y){
 
-      if(e.type=="ghost"){
-        if(snake.state!="ghost"){
-          console.log("Ability: ghost");
-        }
-        snake.setState("ghost",true);
-        snake.resetGhostTimer()
+        if(e.type=="ghost"){
+          if(snake.state!="ghost"){
+            console.log("Ability: ghost");
+          }
+          snake.setState("ghost",true);
+          snake.resetGhostTimer()
 
-      }else if(e.type=="bonus"){
-        console.log("Ability: bonus");
-        let temp=apples.push({pos:{x:0,y:0},size:board.cellSize/2,type:"normal",color:null});
-        randomizeApple(apples[temp-1],false);
-        canDelete=false;
+        }else if(e.type=="bonus"){
+          console.log("Ability: bonus");
+          let temp=apples.push({pos:{x:0,y:0},size:board.cellSize/2,type:"normal",color:null});
+          randomizeApple(apples[temp-1],false);
+          canDelete=false;
 
-      }else if(e.type=="portal"){
-        console.log("Ability: portal");
-        portals.push({
-          entrance:new TPortal(ctx,e.pos,true,e.destination),
-          exit:new TPortal(ctx,e.destination,false,e.pos)
-        });
-        if(!setTimeoutID.portalRotationID){
-          setTimeoutID.portalRotationID=setInterval(()=>{
-            portals.forEach(e=>{
-              e.entrance.portalRotation();
-              e.exit.portalRotation();
-            })
-            drawGame();
-          },100)
+        }else if(e.type=="portal"&&!snake.onSnake(e.destination)){
+          console.log("Ability: portal");
+          portals.push({
+            entrance:new TPortal(ctx,e.pos,true,e.destination),
+            exit:new TPortal(ctx,e.destination,false,e.pos)
+          });
+          if(!setTimeoutID.portalRotationID){
+            setTimeoutID.portalRotationID=setInterval(()=>{
+              portals.forEach(e=>{
+                e.entrance.portalRotation();
+                e.exit.portalRotation();
+              })
+              drawGame();
+            },100)
+          }
         }
+        randomizeApple(e,canDelete);
+        snake.increaseLength();
       }
-      randomizeApple(e,canDelete);
-      snake.increaseLength();
-    }
     })
   }
   drawGame();
@@ -166,24 +173,24 @@ function randomizeApple(apple,canDelete=true){
   apple.type="normal";
   apple.color="rgba(170,0,0,1)";
   let rng=Math.random();
-  if(rng<0.5){
+  if(rng<0.1){
     apple.type="portal";
     apple.color="rgba(170,0,170,1)";
-    apple.destination=portalDestination()
-  }else if(rng<0.8){
+    apple.destination=portalDestination(apple.pos)
+  }else if(rng<0.3){
     apple.type="ghost";
     apple.color="rgba(0,0,85,0.5)";
-  }else if(rng<1){
+  }else if(rng<0.6){
     apple.type="bonus";
     apple.color="rgba(170,170,0,0.5)";
   }
 }
-function portalDestination(){
+function portalDestination(entrance){
   let pos={x:0,y:0}
   do{
     pos.x=Math.floor(Math.random()*board.cols);
     pos.y=Math.floor(Math.random()*board.rows);
-  }while(snake.onSnake(pos))//||onApple(pos))
+  }while(snake.onSnake(pos)||(pos.x==entrance.x&&pos.y==entrance.y))
   return pos;
 }
 function appleCleanUp(){

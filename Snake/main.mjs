@@ -5,8 +5,53 @@ import {TPortal} from "./portal.js"
 const cvs=document.getElementById("canvas");
 const ctx = cvs.getContext("2d");
 
+export const board={
+  cellSize:32,
+  cols:24,
+  rows:18
+};
+
+cvs.width=board.cellSize*board.cols;
+cvs.height=board.cellSize*board.rows;
+
 const SpriteSheet=new Image()
-SpriteSheet.src="apple.png";
+SpriteSheet.src="snake_hud.png";
+
+const hud={
+  soundBtn:{sx:4,sy:72,sw:[[76,1]],sh:76,dx:4,dy:cvs.height-80,count:2,i:0,btnAction:"mute"},
+  playBtn:{sx:4,sy:152,sw:[[156,0]],sh:76,dx:84,dy:cvs.height-80,count:1,i:0,btnAction:"play"},
+  homeInfo:{sx:4,sy:232,sw:[[76,1]],sh:76,dx:244,dy:cvs.height-80,count:2,i:1,btnAction:"home"},
+  title:{sx:164,sy:204,sw:[[504,0]],sh:188,dx:cvs.width/2-504/2,dy:cvs.height/2-188/2,count:1,i:0},
+  gameOver:{sx:272,sy:8,sw:[[408,0]],sh:192,dx:cvs.width-408-80,dy:cvs.height/2-192/2,count:1,i:0},
+  bigNum:{sx:4,sy:4,sw:[[12,0],[24,8]],sh:40,dx:4,dy:4,count:10,i:0},
+  smalNum:{sx:4,sy:48,sw:[[4,0],[12,8]],sh:20,dx:4,dy:48,count:10,i:0},
+
+  compute(h){
+    let next=0;
+    let offset=0;
+    let copy=h.sw[0][1];
+
+    for(let i=0;i<h.i;i++){
+      offset+=h.sw[next][0]+4;
+      if(copy>0){
+        copy--
+      }else{
+        next++
+        next=Math.min(next,h.sw.length-1)
+        copy=h.sw[next][1]
+      }
+    }
+    return{o:offset,w:h.sw[next][0]}
+  },
+
+  draw(h){
+    h.i=Math.max(0,Math.min(h.count-1,h.i));
+    let s=this.compute(h);
+    ctx.drawImage(SpriteSheet,h.sx+s.o,h.sy,s.w,h.sh,h.dx,h.dy,s.w,h.sh)
+  }
+}
+
+const clickableBtn=[hud.soundBtn,hud.playBtn,hud.homeInfo];
 
 export const EGameState={idle:0,playing:1,pause:2,gameOver:3,state:0}
 export const snake=new TSnake(ctx);
@@ -18,12 +63,6 @@ SpriteSheet.onload=function(){
 
 const setTimeoutID={animateGameID:null,snakeDeathID:null,portalRotationID:null};
 
-export const board={
-  cellSize:32,
-  cols:24,
-  rows:18
-};
-
 let apples=[{
   pos:{x:0,y:0},
   size:board.cellSize/2,
@@ -33,9 +72,6 @@ let apples=[{
 }];
 
 export const portals=[];
-
-cvs.width=board.cellSize*board.cols;
-cvs.height=board.cellSize*board.rows;
 
 //functions--------------------------------------------------
 function newGame(){
@@ -47,6 +83,7 @@ function newGame(){
   }if(setTimeoutID.snakeDeathID){
     clearInterval(setTimeoutID.snakeDeathID);
   }
+  hud.homeInfo.i=1;
   drawGame();
   animateGame();
 }
@@ -66,22 +103,42 @@ export function drawGame(){
     e.exit.draw();
   });
 
-  apples.forEach(e=>{
-    ctx.fillStyle=e.color;
-    ctx.fillRect(board.cellSize*e.pos.x+e.size/2,board.cellSize*e.pos.y+e.size/2,e.size,e.size);
-    if(e.destination){
-      fillOnAngle({x:e.destination.x+0.5,y:e.destination.y+0.5},{x:8,y:8},45,"rgba(170,0,170,0.5)");
-    }
-    /*ctx.fillStyle="rgba(51,51,51,1)"; //apple stem
-    let size={x:4,y:6}
-    ctx.fillRect(board.cellSize*e.pos.x+(board.cellSize/2-size.x/2),board.cellSize*e.pos.y+e.size/2-size.y/2,size.x,size.y);*/ //did not like it
-  });
+  let drawLater=[]
+  if(EGameState.state!=EGameState.idle){
+    apples.forEach(e=>{
+      ctx.fillStyle=e.color;
+      ctx.fillRect(board.cellSize*e.pos.x+e.size/2,board.cellSize*e.pos.y+e.size/2,e.size,e.size);
+      if(e.destination){
+        drawLater.push(()=>{
+          fillOnAngle({x:e.destination.x+0.5,y:e.destination.y+0.5},{x:8,y:8},45,"rgba(170,0,170,0.5)")
+        })
+      }
+      /*ctx.fillStyle="rgba(51,51,51,1)"; //apple stem
+      let size={x:4,y:6}
+      ctx.fillRect(board.cellSize*e.pos.x+(board.cellSize/2-size.x/2),board.cellSize*e.pos.y+e.size/2-size.y/2,size.x,size.y);*/ //did not like it
+    });
 
-  snake.draw();
+    snake.draw();
+
+    drawLater.forEach(e=>e());
+  }
 
   if(EGameState.state==EGameState.pause){
     ctx.fillStyle="rgba(0,0,0,0.25)"
     ctx.fillRect(0,0,canvas.width,canvas.height)
+    hud.draw(hud.soundBtn);
+  }
+  else if(EGameState.state==EGameState.idle){
+    hud.draw(hud.soundBtn);
+    hud.draw(hud.playBtn);
+    hud.draw(hud.homeInfo);
+    hud.draw(hud.title);
+  }
+  else if(EGameState.state==EGameState.gameOver){
+    hud.draw(hud.soundBtn);
+    hud.draw(hud.playBtn);
+    hud.draw(hud.homeInfo);
+    hud.draw(hud.gameOver);
   }
 }
 
@@ -117,6 +174,7 @@ function animateGame(){
     if(snake.checkCollision()){
       console.log("Collision");
       snake.setState("dead");
+      hud.homeInfo.i=0;
       EGameState.state=EGameState.gameOver;
       setTimeoutID.snakeDeathID=setInterval(()=>{snake.passDown();drawGame();},2000/snake.length);
       console.log(`Score: ${snake.length}`);
@@ -323,6 +381,8 @@ function onKeyDown(aEvent) {
       break;
     case "Digit8":
       snake.snakeSkin=8;
+      hud.bigNum.i++;
+      hud.smalNum.i++;
       drawGame();
       break;
     case "Digit9":
@@ -335,9 +395,40 @@ function onKeyDown(aEvent) {
       break;
   }
 }
+function onClick(aEvent){
+  let x=aEvent.offsetX;
+  let y=aEvent.offsetY;
+  clickableBtn.forEach(e=>{
+    if((x>e.dx && x<e.dx+hud.compute(e).w)&&(y>e.dy && y<e.dy+e.sh)){
+      switch(e.btnAction){
+        case "mute":
+          hud.soundBtn.i=Math.abs(hud.soundBtn.i-1);
+          break;
+        case "play":
+          if(EGameState.state==EGameState.gameOver){
+            newGame();
+          }
+          EGameState.state=EGameState.playing;
+          break;
+        case "home":
+          if(EGameState.state==EGameState.gameOver){
+            newGame();
+          }
+          EGameState.state=EGameState.idle;
+          break;
+      
+        default:
+          alert(`button ${e.btnAction} not correct`)
+          break;
+      }
+      drawGame();
+    }
+  });
+}
 
 //event listener----------------------------------------------------------------------
 document.addEventListener("keydown", onKeyDown);
+cvs.addEventListener("click", onClick)
 document.addEventListener("DOMContentLoaded", () => {
   window.clearLocalStorage = function () {
     if(!confirm("are you sure")){return}

@@ -21,10 +21,36 @@ const hud={
   soundBtn:{sx:4,sy:72,sw:[[76,1]],sh:76,dx:4,dy:cvs.height-80,count:2,i:0,btnAction:"mute"},
   playBtn:{sx:4,sy:152,sw:[[156,0]],sh:76,dx:84,dy:cvs.height-80,count:1,i:0,btnAction:"play"},
   homeInfo:{sx:4,sy:232,sw:[[76,1]],sh:76,dx:244,dy:cvs.height-80,count:2,i:1,btnAction:"home"},
-  title:{sx:164,sy:204,sw:[[504,0]],sh:188,dx:cvs.width/2-504/2,dy:cvs.height/2-188/2,count:1,i:0},
+  title:{sx:164,sy:204,sw:[[504,0]],sh:188,dx:cvs.width/2-504/2,dy:cvs.height/2.5-188/2,count:1,i:0},
   gameOver:{sx:272,sy:8,sw:[[408,0]],sh:192,dx:cvs.width-408-80,dy:cvs.height/2-192/2,count:1,i:0},
-  bigNum:{sx:4,sy:4,sw:[[12,0],[24,8]],sh:40,dx:4,dy:4,count:10,i:0},
-  smalNum:{sx:4,sy:48,sw:[[4,0],[12,8]],sh:20,dx:4,dy:48,count:10,i:0},
+  bigNum:{sx:4,sy:4,sw:[[24,0],[12,0],[24,7]],sh:40,dx:12,dy:12,aplha:0.5,count:10,i:0},
+  smalNum:{sx:4,sy:48,sw:[[12,0],[4,0],[12,7]],sh:20,dx:4,dy:48,kerning:["67"],count:10,i:0},
+  edge:{sx:4,sy:312,sw:[[48,0]],sh:48,dx:100,dy:84,count:2,i:1},
+  infoBox:{show:false,drawInfo(){
+    ctx.fillStyle="rgba(204,204,204,1)";
+    ctx.fillRect(100+48,84+48,cvs.width-200-96,cvs.height-168-96);
+
+    [[100,84,-90],[cvs.width-148,cvs.height-132,90],
+    [100,cvs.height-132,180],[cvs.width-148,84,0],
+    [(100+cvs.width-148)/2,84,0,{x:10.3,y:1},1],
+    [100,(cvs.height-132+84)/2,-90,{x:7,y:1},1],
+    [(cvs.width-148+cvs.width-148)/2,(cvs.height-132+84)/2,90,{x:7,y:1},1],
+    [(100+cvs.width-148)/2,(cvs.height-132+cvs.height-132)/2,180,{x:10.3,y:1},1]].forEach(e=>{
+      hud.edge.dx=e[0];hud.edge.dy=e[1];
+      if(e[4]){hud.edge.i=0}else{hud.edge.i=1}
+      hud.centerDraw(hud.edge,e[2],e[3]);
+    });
+
+    ctx.font="42px Arial";
+    ctx.textAlign="center";
+    ctx.fillStyle="black";
+    ctx.fillText("info", cvs.width/2, 150, cvs.width-300);
+    ctx.font="32px Arial";
+    let text=["let me type somthing","second line"]
+    for(let i=0;i<text.length;i++){
+      ctx.fillText(text[i], cvs.width/2, 192+32*i, cvs.width-300);
+    }
+  }},
 
   compute(h){
     let next=0;
@@ -47,9 +73,29 @@ const hud={
   draw(h){
     h.i=Math.max(0,Math.min(h.count-1,h.i));
     let s=this.compute(h);
-    ctx.drawImage(SpriteSheet,h.sx+s.o,h.sy,s.w,h.sh,h.dx,h.dy,s.w,h.sh)
+    if(h.aplha){ctx.globalAlpha=h.aplha;}
+    ctx.drawImage(SpriteSheet,h.sx+s.o,h.sy,s.w,h.sh,h.dx,h.dy,s.w,h.sh);
+    ctx.globalAlpha=1;ctx.restore()
+  },
+
+  centerDraw(h,deg=0,scale={x:1,y:1}){
+    h.i=Math.max(0,Math.min(h.count-1,h.i));
+    let s=this.compute(h);
+    ctx.save();
+    if(h.aplha){ctx.globalAlpha=h.aplha;};
+    ctx.translate(h.dx+s.w/2,h.dy+h.sh/2);
+    ctx.rotate(deg*Math.PI/180);
+    ctx.scale(scale.x,scale.y)
+    ctx.drawImage(SpriteSheet,h.sx+s.o,h.sy,s.w,h.sh,-s.w/2,-h.sh/2,s.w,h.sh);
+    ctx.restore();
+
   }
 }
+let scoreNums=[{...hud.bigNum}];
+let endScore=[{...hud.smalNum}];
+let highScore=[{...hud.smalNum}];
+endScore[0].dx=400;endScore[0].dy=332;
+highScore[0].dx=624;highScore[0].dy=192;
 
 const clickableBtn=[hud.soundBtn,hud.playBtn,hud.homeInfo];
 
@@ -113,7 +159,7 @@ export function drawGame(){
           fillOnAngle({x:e.destination.x+0.5,y:e.destination.y+0.5},{x:8,y:8},45,"rgba(170,0,170,0.5)")
         })
       }
-      /*ctx.fillStyle="rgba(51,51,51,1)"; //apple stem
+      /*ctx.fillStyle="rgba(85,85,85,1)"; //apple stem
       let size={x:4,y:6}
       ctx.fillRect(board.cellSize*e.pos.x+(board.cellSize/2-size.x/2),board.cellSize*e.pos.y+e.size/2-size.y/2,size.x,size.y);*/ //did not like it
     });
@@ -133,12 +179,18 @@ export function drawGame(){
     hud.draw(hud.playBtn);
     hud.draw(hud.homeInfo);
     hud.draw(hud.title);
+    if(hud.infoBox.show){hud.infoBox.drawInfo()}
   }
   else if(EGameState.state==EGameState.gameOver){
     hud.draw(hud.soundBtn);
     hud.draw(hud.playBtn);
     hud.draw(hud.homeInfo);
     hud.draw(hud.gameOver);
+    drawNumber(endScore,snake.length);
+    drawNumber(highScore,localStorage.getItem("score"));
+  }
+  if(EGameState.state==EGameState.playing||EGameState.state==EGameState.pause){
+    drawNumber(scoreNums,snake.length);
   }
 }
 
@@ -306,6 +358,24 @@ export function fillOnAngle(pos,dim,deg,color){
   ctx.restore();
 }
 
+function drawNumber(numbers,value){
+  while(value>=10**numbers.length){
+    numbers.push({...numbers[0]});
+  }
+  while(value<10**(numbers.length-1) && numbers.length>1){
+    numbers.pop();
+  }
+  let digetOffset=numbers[0].dx;
+  for(let i=0;i<numbers.length;i++){
+    numbers[i].i=Math.floor(value/10**(numbers.length-1-i))%10;
+    let checkKerning=numbers[0].kerning && i-1>=0;
+    if(checkKerning && numbers[0].kerning.includes(`${numbers[i-1].i}${numbers[i].i}`)){digetOffset-=6}
+    numbers[i].dx=digetOffset;
+    digetOffset+=hud.compute(numbers[i]).w+4;
+    hud.draw(numbers[i]);
+  }
+}
+
 function onKeyDown(aEvent) {
   switch(aEvent.code){
     case "ArrowUp":
@@ -381,8 +451,6 @@ function onKeyDown(aEvent) {
       break;
     case "Digit8":
       snake.snakeSkin=8;
-      hud.bigNum.i++;
-      hud.smalNum.i++;
       drawGame();
       break;
     case "Digit9":
@@ -413,8 +481,11 @@ function onClick(aEvent){
         case "home":
           if(EGameState.state==EGameState.gameOver){
             newGame();
+            EGameState.state=EGameState.idle;
+          }else if(EGameState.state==EGameState.idle){
+            hud.infoBox.show=!hud.infoBox.show;
+            drawGame();
           }
-          EGameState.state=EGameState.idle;
           break;
       
         default:

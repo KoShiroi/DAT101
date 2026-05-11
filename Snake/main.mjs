@@ -3,7 +3,7 @@ import {TSnake} from "./snake.js"
 import {TPortal} from "./portal.js"
 
 const cvs=document.getElementById("canvas");
-const ctx = cvs.getContext("2d");
+const ctx=cvs.getContext("2d");
 
 export const board={
   cellSize:32,
@@ -14,16 +14,44 @@ export const board={
 cvs.width=board.cellSize*board.cols;
 cvs.height=board.cellSize*board.rows;
 
+const audioCtx=new AudioContext();
+
+const sound={
+  eat:{isStarted:false,type:"triangle",frequency:500,vol:0.25,fade:{in:0.01,hold:0.04,out:0.3}},//sawtooth,sine,triangle,square
+  button:{isStarted:false,type:"triangle",frequency:250,vol:0.5,fade:{in:0.01,hold:0.1,out:0.06}},
+  death:{isStarted:false,type:"triangle",frequency:250,vol:0.5,fade:{in:0.01,hold:0.1,out:0.06}},
+  makeSound(name){
+    let s=this[name]
+    const now=audioCtx.currentTime;
+    if(!s.isStarted){
+      s.osc=new OscillatorNode(audioCtx,{type:s.type,frequency:s.frequency})
+      s.gain=new GainNode(audioCtx,{gain:0})
+      s.isStarted=true
+
+      s.osc.connect(s.gain).connect(audioCtx.destination);
+      s.osc.start(now);
+
+      this[name]=s;
+    }
+    s.gain.gain.cancelScheduledValues(now);
+    s.gain.gain.setValueAtTime(0,now);
+
+    s.gain.gain.linearRampToValueAtTime(1*s.vol,now+s.fade.in);
+    s.gain.gain.setValueAtTime(1*s.vol,now+s.fade.in+s.fade.hold);
+    s.gain.gain.linearRampToValueAtTime(0,now+s.fade.in+s.fade.hold+s.fade.out);
+  }
+};
+
 const SpriteSheet=new Image()
-SpriteSheet.src="snake_hud.png";
+SpriteSheet.src="./snake_hud.png";
 
 const hud={
-  soundBtn:{sx:4,sy:72,sw:[[76,1]],sh:76,dx:4,dy:cvs.height-80,count:2,i:0,btnAction:"mute"},
-  playBtn:{sx:4,sy:152,sw:[[156,0]],sh:76,dx:84,dy:cvs.height-80,count:1,i:0,btnAction:"play"},
-  homeInfo:{sx:4,sy:232,sw:[[76,1]],sh:76,dx:244,dy:cvs.height-80,count:2,i:1,btnAction:"home"},
+  soundBtn:{sx:4,sy:72,sw:[[76,1]],sh:76,dx:4,dy:cvs.height-80,alpha:0.75,count:2,i:0,btnAction:"mute"},
+  playBtn:{sx:4,sy:152,sw:[[156,0]],sh:76,dx:84,dy:cvs.height-80,alpha:0.75,count:1,i:0,btnAction:"play"},
+  homeInfo:{sx:4,sy:232,sw:[[76,1]],sh:76,dx:244,dy:cvs.height-80,alpha:0.75,count:2,i:1,btnAction:"home"},
   title:{sx:164,sy:204,sw:[[504,0]],sh:188,dx:cvs.width/2-504/2,dy:cvs.height/2.5-188/2,count:1,i:0},
   gameOver:{sx:272,sy:8,sw:[[408,0]],sh:192,dx:cvs.width-408-80,dy:cvs.height/2-192/2,count:1,i:0},
-  bigNum:{sx:4,sy:4,sw:[[24,0],[12,0],[24,7]],sh:40,dx:12,dy:12,aplha:0.5,count:10,i:0},
+  bigNum:{sx:4,sy:4,sw:[[24,0],[12,0],[24,7]],sh:40,dx:12,dy:12,alpha:0.5,count:10,i:0},
   smalNum:{sx:4,sy:48,sw:[[12,0],[4,0],[12,7]],sh:20,dx:4,dy:48,kerning:["67"],count:10,i:0},
   edge:{sx:4,sy:312,sw:[[48,0]],sh:48,dx:100,dy:84,count:2,i:1},
   infoBox:{show:false,drawInfo(){
@@ -73,7 +101,7 @@ const hud={
   draw(h){
     h.i=Math.max(0,Math.min(h.count-1,h.i));
     let s=this.compute(h);
-    if(h.aplha){ctx.globalAlpha=h.aplha;}
+    if(h.alpha){ctx.globalAlpha=h.alpha;}
     ctx.drawImage(SpriteSheet,h.sx+s.o,h.sy,s.w,h.sh,h.dx,h.dy,s.w,h.sh);
     ctx.globalAlpha=1;ctx.restore()
   },
@@ -82,7 +110,7 @@ const hud={
     h.i=Math.max(0,Math.min(h.count-1,h.i));
     let s=this.compute(h);
     ctx.save();
-    if(h.aplha){ctx.globalAlpha=h.aplha;};
+    if(h.alpha){ctx.globalAlpha=h.alpha;};
     ctx.translate(h.dx+s.w/2,h.dy+h.sh/2);
     ctx.rotate(deg*Math.PI/180);
     ctx.scale(scale.x,scale.y)
@@ -103,10 +131,6 @@ export const EGameState={idle:0,playing:1,pause:2,gameOver:3,state:0}
 export const snake=new TSnake(ctx);
 snake.snakeSkin="default";
 
-SpriteSheet.onload=function(){
-  newGame();
-};
-
 const setTimeoutID={animateGameID:null,snakeDeathID:null,portalRotationID:null};
 
 let apples=[{
@@ -117,7 +141,7 @@ let apples=[{
   destination:null
 }];
 
-export const portals=[];
+export let portals=[];
 
 //functions--------------------------------------------------
 function newGame(){
@@ -129,6 +153,7 @@ function newGame(){
   }if(setTimeoutID.snakeDeathID){
     clearInterval(setTimeoutID.snakeDeathID);
   }
+  portals=[];
   hud.homeInfo.i=1;
   drawGame();
   animateGame();
@@ -228,7 +253,11 @@ function animateGame(){
       snake.setState("dead");
       hud.homeInfo.i=0;
       EGameState.state=EGameState.gameOver;
-      setTimeoutID.snakeDeathID=setInterval(()=>{snake.passDown();drawGame();},2000/snake.length);
+      setTimeoutID.snakeDeathID=setInterval(()=>{
+        snake.passDown();
+        sound.makeSound("death");
+        drawGame();
+      },2000/snake.length);
       console.log(`Score: ${snake.length}`);
       if(!localStorage.getItem("score")||Number(localStorage.getItem("score"))<snake.length){
         localStorage.setItem('score',snake.length);
@@ -241,6 +270,7 @@ function animateGame(){
     apples.forEach(e=>{
       let canDelete=true;
       if(snake.pos.x==e.pos.x && snake.pos.y==e.pos.y){
+        sound.makeSound("eat");
 
         if(e.type=="ghost"){
           if(snake.state!="ghost"){
@@ -378,21 +408,25 @@ function drawNumber(numbers,value){
 
 function onKeyDown(aEvent) {
   switch(aEvent.code){
+    case "KeyW":
     case "ArrowUp":
       if(snake.direction!="down"){
         snake.newDirection="up";
       };
       break;
+    case "KeyD":
     case "ArrowRight":
       if(snake.direction!="left"){
         snake.newDirection="right";
       }
       break;
+    case "KeyS":
     case "ArrowDown":
       if(snake.direction!="up"){
         snake.newDirection="down";
       }
       break;
+    case "KeyA":
     case "ArrowLeft":
       if(snake.direction!="right"){
         snake.newDirection="left";
@@ -463,43 +497,71 @@ function onKeyDown(aEvent) {
       break;
   }
 }
-function onClick(aEvent){
+function onButton(aEvent){
   let x=aEvent.offsetX;
   let y=aEvent.offsetY;
+  let btn=null;
   clickableBtn.forEach(e=>{
-    if((x>e.dx && x<e.dx+hud.compute(e).w)&&(y>e.dy && y<e.dy+e.sh)){
-      switch(e.btnAction){
-        case "mute":
-          hud.soundBtn.i=Math.abs(hud.soundBtn.i-1);
-          break;
-        case "play":
-          if(EGameState.state==EGameState.gameOver){
-            newGame();
-          }
-          EGameState.state=EGameState.playing;
-          break;
-        case "home":
-          if(EGameState.state==EGameState.gameOver){
-            newGame();
-            EGameState.state=EGameState.idle;
-          }else if(EGameState.state==EGameState.idle){
-            hud.infoBox.show=!hud.infoBox.show;
-            drawGame();
-          }
-          break;
-      
-        default:
-          alert(`button ${e.btnAction} not correct`)
-          break;
-      }
-      drawGame();
-    }
+    if((x>e.dx && x<e.dx+hud.compute(e).w)&&(y>e.dy && y<e.dy+e.sh)){btn=e;}
   });
+  return btn;
+}
+function onClick(aEvent){
+  let button=onButton(aEvent);
+  if(button){
+    switch(button.btnAction){
+      case "mute":
+        hud.soundBtn.i=Math.abs(hud.soundBtn.i-1);
+        break;
+      case "play":
+        if(EGameState.state==EGameState.gameOver){
+          newGame();
+        }
+        EGameState.state=EGameState.playing;
+        break;
+      case "home":
+        if(EGameState.state==EGameState.gameOver){
+          newGame();
+          EGameState.state=EGameState.idle;
+        }else if(EGameState.state==EGameState.idle){
+          hud.infoBox.show=!hud.infoBox.show;
+          drawGame();
+        }
+        break;
+    
+      default:
+        alert(`button ${e.btnAction} not correct`)
+        break;
+    }
+    sound.makeSound("button");
+    drawGame();
+  }
+}
+let alterdBtns=[];
+function onHover(aEvent){
+  let button=onButton(aEvent);
+  if(button){
+    document.getElementById("canvas").style.cursor="url('./cursor.png') 16 16, none"//"pointer";
+    if(button.alpha!=1){
+      button.alpha=1;
+      alterdBtns.push(button);
+    }
+  }else{
+    document.getElementById("canvas").style.cursor="url('./cursorDot.png') 16 16, cell"//"default";
+  }
+  alterdBtns.forEach(e=>{
+    if(e!=button){e.alpha=0.75;e=null}
+  });
+  for(let i=0;i<alterdBtns.length;i++){
+    if(alterdBtns[i]==null){alterdBtns.splice(i,1)}
+  }
+  drawGame();
 }
 
 //event listener----------------------------------------------------------------------
 document.addEventListener("keydown", onKeyDown);
-cvs.addEventListener("click", onClick)
+cvs.addEventListener("click", onClick);
+cvs.addEventListener("mousemove", onHover);
 document.addEventListener("DOMContentLoaded", () => {
   window.clearLocalStorage = function () {
     if(!confirm("are you sure")){return}
@@ -507,3 +569,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log("localStorage cleared");
   };
 });
+SpriteSheet.onload=function(){
+  newGame();
+};

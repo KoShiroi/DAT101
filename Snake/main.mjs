@@ -17,9 +17,11 @@ cvs.height=board.cellSize*board.rows;
 const audioCtx=new AudioContext();
 
 const sound={
-  eat:{isStarted:false,type:"triangle",frequency:500,vol:0.25,fade:{in:0.01,hold:0.04,out:0.3}},//sawtooth,sine,triangle,square
-  button:{isStarted:false,type:"triangle",frequency:250,vol:0.5,fade:{in:0.01,hold:0.1,out:0.06}},
-  death:{isStarted:false,type:"triangle",frequency:250,vol:0.5,fade:{in:0.01,hold:0.1,out:0.06}},
+  isMuted:false,
+  eat:{isStarted:false,type:"triangle",frequency:500,vol:0.2,fade:{in:0.01,hold:0.04,out:0.3}},//sawtooth,sine,triangle,square
+  button:{isStarted:false,type:"triangle",frequency:250,vol:0.45,fade:{in:0.01,hold:0.1,out:0.06}},
+  death:{isStarted:false,type:"sawtooth",frequency:125,vol:0.05,fade:{in:0.01,hold:0.1,out:0.05}},
+  portal:{isStarted:false,type:"square",frequency:100,vol:0.1,fade:{in:0.25,hold:0.1,out:0.45}},
   makeSound(name){
     let s=this[name]
     const now=audioCtx.currentTime;
@@ -35,10 +37,11 @@ const sound={
     }
     s.gain.gain.cancelScheduledValues(now);
     s.gain.gain.setValueAtTime(0,now);
-
-    s.gain.gain.linearRampToValueAtTime(1*s.vol,now+s.fade.in);
-    s.gain.gain.setValueAtTime(1*s.vol,now+s.fade.in+s.fade.hold);
-    s.gain.gain.linearRampToValueAtTime(0,now+s.fade.in+s.fade.hold+s.fade.out);
+    if(!sound.isMuted){
+      s.gain.gain.linearRampToValueAtTime(1*s.vol,now+s.fade.in);
+      s.gain.gain.setValueAtTime(1*s.vol,now+s.fade.in+s.fade.hold);
+      s.gain.gain.linearRampToValueAtTime(0,now+s.fade.in+s.fade.hold+s.fade.out);
+    }
   }
 };
 
@@ -228,8 +231,10 @@ function animateGame(){
       }
       if(!snake.justTeleported&&short.entrance){
         snake.tp=e.entrance.destination;
+        sound.makeSound("portal");
       }else if(!snake.justTeleported&&short.exit){
         snake.tp=e.exit.destination;
+        sound.makeSound("portal");
       }
     })
     snake.animate();
@@ -253,10 +258,16 @@ function animateGame(){
       snake.setState("dead");
       hud.homeInfo.i=0;
       EGameState.state=EGameState.gameOver;
+      let count=0;
       setTimeoutID.snakeDeathID=setInterval(()=>{
+        count++;
         snake.passDown();
         sound.makeSound("death");
         drawGame();
+        if(count>=snake.length){
+          clearInterval(setTimeoutID.snakeDeathID)
+          setTimeoutID.snakeDeathID=null;
+        }
       },2000/snake.length);
       console.log(`Score: ${snake.length}`);
       if(!localStorage.getItem("score")||Number(localStorage.getItem("score"))<snake.length){
@@ -318,9 +329,28 @@ function randomizeApple(apple,canDelete=true){
     return;
   }
   apple.destination=null;
+  let count=0;
   do{
     apple.pos.x=Math.floor(Math.random()*board.cols);
     apple.pos.y=Math.floor(Math.random()*board.rows);
+    if(count>=50){ // after 50 somthing hase to change
+      let found=false;
+      for(let x=0;x<board.cols && !found;x++){
+        for(let y=0;y<board.rows  && !found;y++){
+          apple.pos.x=x;apple.pos.y=y;
+          if(!snake.onSnake(apple.pos)&&!onApple(apple)){
+             found=true;
+          }
+        }
+      }
+      if(!found){ // to avoid infinit loop if no valid spots
+        apple.type="delete";
+        console.log("Forced Deleted: apple");
+        appleCleanUp();
+        return;
+      }
+    }
+    count++;
   }while(snake.onSnake(apple.pos)||onApple(apple))
   apple.type="normal";
   apple.color="rgba(170,0,0,1)";
@@ -512,6 +542,7 @@ function onClick(aEvent){
     switch(button.btnAction){
       case "mute":
         hud.soundBtn.i=Math.abs(hud.soundBtn.i-1);
+        sound.isMuted=!sound.isMuted;
         break;
       case "play":
         if(EGameState.state==EGameState.gameOver){

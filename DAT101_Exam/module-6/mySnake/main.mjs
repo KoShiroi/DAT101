@@ -211,23 +211,20 @@ export function drawGame(){
   if(EGameState.state==EGameState.pause){
     ctx.fillStyle="rgba(0,0,0,0.25)"
     ctx.fillRect(0,0,canvas.width,canvas.height)
-    hud.draw(hud.soundBtn);
   }
   else if(EGameState.state==EGameState.idle){
-    hud.draw(hud.soundBtn);
-    hud.draw(hud.playBtn);
-    hud.draw(hud.homeInfo);
     hud.draw(hud.title);
     if(hud.infoBox.show){hud.infoBox.drawInfo()}
   }
   else if(EGameState.state==EGameState.gameOver){
-    hud.draw(hud.soundBtn);
-    hud.draw(hud.playBtn);
-    hud.draw(hud.homeInfo);
     hud.draw(hud.gameOver);
     drawNumber(endScore,snake.length);
     drawNumber(highScore,localStorage.getItem("score"));
   }
+  hud.draw(hud.soundBtn);
+  hud.draw(hud.playBtn);
+  hud.draw(hud.homeInfo);
+
   if(EGameState.state==EGameState.playing||EGameState.state==EGameState.pause){
     drawNumber(scoreNums,snake.length);
   }
@@ -502,19 +499,21 @@ function onKeyDown(aEvent) {
           EGameState.state=EGameState.pause;
           hud.soundBtn.inactiv=false;
           snake.pause();
-          drawGame();
           break;
         case EGameState.pause:
           EGameState.state=EGameState.playing;
           hud.soundBtn.inactiv=true;
           snake.pause();
-          drawGame();
           break;
         case EGameState.gameOver:
           EGameState.state=EGameState.playing;
           newGame();
+          hud.soundBtn.inactiv=true;
+          hud.playBtn.inactiv=true;
+          hud.homeInfo.inactiv=true;
           break;
       }
+      drawGame();
       break;
 
     case "Digit1":

@@ -23,7 +23,7 @@ export class TSnake{
     this.#oldPos=null;
     this.#intervalsIDs={ghostID:null};
     this.#tpCoords=null;
-    this.#justTeleported=false;
+    this.#justTeleported=0;
   }
 
   newGame(){
@@ -74,6 +74,7 @@ export class TSnake{
   }
   animate(){
     this.passDown();
+
     if(this.#baseState=="ghost"&&!this.#intervalsIDs.ghostID){
       this.#intervalsIDs.ghostID=setGameTimeout(()=>{
         if(EGameState.state!=EGameState.gameOver){
@@ -82,7 +83,8 @@ export class TSnake{
         }
       },5000)
     }
-    this.#snake.forEach(e=>{
+
+    this.#snake.forEach(e=>{ // move snake
       this.#oldPos={pos:{x:e.pos.x,y:e.pos.y},direction:e.direction,state:e.state,tp:e.tp};
       if(e.tp){
         e.pos.x=e.tp.x;
@@ -152,6 +154,7 @@ export class TSnake{
     });
     return bool;
   }
+
   checkCollision(){
     let bool=false;
     this.#snake.slice(1).forEach(e=>{
@@ -160,6 +163,7 @@ export class TSnake{
     if(this.pos.x<0||this.pos.y<0||this.pos.x>=board.cols||this.pos.y>=board.rows){bool=true};
     return bool;
   }
+
   setState(state,all=false){
     this.#baseState=state;
     if(all){
@@ -168,12 +172,14 @@ export class TSnake{
       });
     }
   }
+
   resetGhostTimer(){
     if(this.#intervalsIDs.ghostID){
       this.#intervalsIDs.ghostID.clear();
       this.#intervalsIDs.ghostID=null;
     }
   }
+
   grabColor(color){
     let splitColor=color.split(/[,()]/);
     return{
@@ -183,6 +189,7 @@ export class TSnake{
       a:Number(splitColor[4])
     }
   }
+
   colorGradient(start, end, t){
     const splitStart=this.grabColor(start);
     const splitEnd=this.grabColor(end);
@@ -193,6 +200,7 @@ export class TSnake{
     ${splitStart.a+(splitEnd.a-splitStart.a)*t}
     )`
   }
+
   pause(){
     if(EGameState.state==EGameState.pause && this.#intervalsIDs.ghostID){
       this.#intervalsIDs.ghostID.pause();
@@ -274,7 +282,7 @@ export class TSnake{
       case 5:
       case "RGBgamer":
         let col={r:1,g:0,b:0,amount:0.02,phase:0} //sice it is based on changing every draw. portals that increase draw messes with it
-        this.#snakeColor={ //its not a bug it is a feature. snake is going in hyper drive/warp
+        this.#snakeColor={ //its not a bug it is a feature. the snake is going in hyper drive/warp
           get base(){
             if(col.phase==0){
                 col.r-=col.amount

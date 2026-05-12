@@ -18,7 +18,7 @@ const audioCtx=new AudioContext();
 
 const sound={
   isMuted:false,
-  eat:{isStarted:false,type:"triangle",frequency:500,vol:0.2,fade:{in:0.01,hold:0.04,out:0.3}},//sawtooth,sine,triangle,square
+  eat:{isStarted:false,type:"triangle",frequency:500,vol:0.2,fade:{in:0.01,hold:0.04,out:0.3}},
   button:{isStarted:false,type:"triangle",frequency:250,vol:0.45,fade:{in:0.01,hold:0.1,out:0.06}},
   death:{isStarted:false,type:"sawtooth",frequency:125,vol:0.05,fade:{in:0.01,hold:0.1,out:0.05}},
   portal:{isStarted:false,type:"square",frequency:100,vol:0.1,fade:{in:0.25,hold:0.1,out:0.45}},
@@ -49,9 +49,9 @@ const SpriteSheet=new Image()
 SpriteSheet.src="./snake_hud.png";
 
 const hud={
-  soundBtn:{sx:4,sy:72,sw:[[76,1]],sh:76,dx:4,dy:cvs.height-80,alpha:0.75,count:2,i:0,btnAction:"mute"},
-  playBtn:{sx:4,sy:152,sw:[[156,0]],sh:76,dx:84,dy:cvs.height-80,alpha:0.75,count:1,i:0,btnAction:"play"},
-  homeInfo:{sx:4,sy:232,sw:[[76,1]],sh:76,dx:244,dy:cvs.height-80,alpha:0.75,count:2,i:1,btnAction:"home"},
+  soundBtn:{sx:4,sy:72,sw:[[76,1]],sh:76,dx:4,dy:cvs.height-80,alpha:0.75,count:2,i:0,inactiv:false,btnAction:"mute"},
+  playBtn:{sx:4,sy:152,sw:[[156,0]],sh:76,dx:84,dy:cvs.height-80,alpha:0.75,count:1,i:0,inactiv:false,btnAction:"play"},
+  homeInfo:{sx:4,sy:232,sw:[[76,1]],sh:76,dx:244,dy:cvs.height-80,alpha:0.75,count:2,i:1,inactiv:false,btnAction:"home"},
   title:{sx:164,sy:204,sw:[[504,0]],sh:188,dx:cvs.width/2-504/2,dy:cvs.height/2.5-188/2,count:1,i:0},
   gameOver:{sx:272,sy:8,sw:[[408,0]],sh:192,dx:cvs.width-408-80,dy:cvs.height/2-192/2,count:1,i:0},
   bigNum:{sx:4,sy:4,sw:[[24,0],[12,0],[24,7]],sh:40,dx:12,dy:12,alpha:0.5,count:10,i:0},
@@ -61,12 +61,14 @@ const hud={
     ctx.fillStyle="rgba(204,204,204,1)";
     ctx.fillRect(100+48,84+48,cvs.width-200-96,cvs.height-168-96);
 
-    [[100,84,-90],[cvs.width-148,cvs.height-132,90],
+    [[100,84,-90],[cvs.width-148,cvs.height-132,90],// corners
     [100,cvs.height-132,180],[cvs.width-148,84,0],
-    [(100+cvs.width-148)/2,84,0,{x:10.3,y:1},1],
+
+    [(100+cvs.width-148)/2,84,0,{x:10.3,y:1},1],// sides
     [100,(cvs.height-132+84)/2,-90,{x:7,y:1},1],
     [(cvs.width-148+cvs.width-148)/2,(cvs.height-132+84)/2,90,{x:7,y:1},1],
-    [(100+cvs.width-148)/2,(cvs.height-132+cvs.height-132)/2,180,{x:10.3,y:1},1]].forEach(e=>{
+    [(100+cvs.width-148)/2,(cvs.height-132+cvs.height-132)/2,180,{x:10.3,y:1},1]
+    ].forEach(e=>{
       hud.edge.dx=e[0];hud.edge.dy=e[1];
       if(e[4]){hud.edge.i=0}else{hud.edge.i=1}
       hud.centerDraw(hud.edge,e[2],e[3]);
@@ -75,7 +77,7 @@ const hud={
     ctx.font="42px Arial";
     ctx.textAlign="center";
     ctx.fillStyle="black";
-    ctx.fillText("info", cvs.width/2, 150, cvs.width-300);
+    ctx.fillText("Info Pannel", cvs.width/2, 150, cvs.width-300);
     ctx.font="32px Arial";
     let text=["let me type somthing","second line"]
     for(let i=0;i<text.length;i++){
@@ -90,23 +92,24 @@ const hud={
 
     for(let i=0;i<h.i;i++){
       offset+=h.sw[next][0]+4;
-      if(copy>0){
-        copy--
+      if(copy>0){ // chech if value(sw) counts for next one too
+        copy--;
       }else{
-        next++
-        next=Math.min(next,h.sw.length-1)
-        copy=h.sw[next][1]
+        next++;
+        next=Math.min(next,h.sw.length-1);
+        copy=h.sw[next][1];
       }
     }
     return{o:offset,w:h.sw[next][0]}
   },
 
   draw(h){
+    if(h.inactiv){return}
     h.i=Math.max(0,Math.min(h.count-1,h.i));
     let s=this.compute(h);
     if(h.alpha){ctx.globalAlpha=h.alpha;}
     ctx.drawImage(SpriteSheet,h.sx+s.o,h.sy,s.w,h.sh,h.dx,h.dy,s.w,h.sh);
-    ctx.globalAlpha=1;ctx.restore()
+    ctx.globalAlpha=1;
   },
 
   centerDraw(h,deg=0,scale={x:1,y:1}){
@@ -153,11 +156,19 @@ function newGame(){
   randomizeApple(apples[0]);
   if(setTimeoutID.animateGameID){
     clearTimeout(setTimeoutID.animateGameID);
+    setTimeoutID.animateGameID=null;
   }if(setTimeoutID.snakeDeathID){
     clearInterval(setTimeoutID.snakeDeathID);
+    setTimeoutID.snakeDeathID=null;
+  }if(setTimeoutID.portalRotationID){
+    clearInterval(setTimeoutID.portalRotationID);
+    setTimeoutID.portalRotationID=null;
   }
   portals=[];
   hud.homeInfo.i=1;
+  hud.soundBtn.inactiv=false;
+  hud.playBtn.inactiv=false;
+  hud.homeInfo.inactiv=false;
   drawGame();
   animateGame();
 }
@@ -189,7 +200,7 @@ export function drawGame(){
       }
       /*ctx.fillStyle="rgba(85,85,85,1)"; //apple stem
       let size={x:4,y:6}
-      ctx.fillRect(board.cellSize*e.pos.x+(board.cellSize/2-size.x/2),board.cellSize*e.pos.y+e.size/2-size.y/2,size.x,size.y);*/ //did not like it
+      ctx.fillRect(board.cellSize*e.pos.x+(board.cellSize/2-size.x/2),board.cellSize*e.pos.y+e.size/2-size.y/2,size.x,size.y);*/ // did not like it
     });
 
     snake.draw();
@@ -224,7 +235,8 @@ export function drawGame(){
 
 function animateGame(){
   if(EGameState.state==EGameState.playing){
-    portals.forEach(e=>{
+
+    portals.forEach(e=>{ // detect portal
       let short={
         entrance:snake.pos.x==e.entrance.pos.x&&snake.pos.y==e.entrance.pos.y,
         exit:snake.pos.x==e.exit.pos.x&&snake.pos.y==e.exit.pos.y
@@ -237,14 +249,17 @@ function animateGame(){
         sound.makeSound("portal");
       }
     })
+
     snake.animate();
-    for(let i=0;i<portals.length;i++){
+
+    for(let i=0;i<portals.length;i++){ // open/close/remove portal
       if(snake.onSnake(portals[i].entrance.pos)){
         portals[i].entrance.open();
       }else{portals[i].entrance.close();}
       if(snake.onSnake(portals[i].exit.pos)){
         portals[i].exit.open();
       }else{portals[i].exit.close();}
+
       if(portals[i].entrance.isClosed&&portals[i].exit.isClosed){
         portals.splice(i,1);
         if(portals.length==0&&setTimeoutID.portalRotationID){
@@ -253,31 +268,38 @@ function animateGame(){
         }
       }
     }
+
     if(snake.checkCollision()){
       console.log("Collision");
       snake.setState("dead");
       hud.homeInfo.i=0;
+      hud.soundBtn.inactiv=false;
+      hud.playBtn.inactiv=false;
+      hud.homeInfo.inactiv=false;
       EGameState.state=EGameState.gameOver;
+
       let count=0;
       setTimeoutID.snakeDeathID=setInterval(()=>{
-        count++;
         snake.passDown();
         sound.makeSound("death");
         drawGame();
+        count++;
         if(count>=snake.length){
-          clearInterval(setTimeoutID.snakeDeathID)
+          clearInterval(setTimeoutID.snakeDeathID);
           setTimeoutID.snakeDeathID=null;
         }
       },2000/snake.length);
+
       console.log(`Score: ${snake.length}`);
       if(!localStorage.getItem("score")||Number(localStorage.getItem("score"))<snake.length){
         localStorage.setItem('score',snake.length);
       }
       console.log(`HightScore: ${localStorage.getItem("score")}`);
       if(snake.length>=board.cols*board.rows){
-        console.log("you win!")
+        console.log("you win!");
       }
     }
+
     apples.forEach(e=>{
       let canDelete=true;
       if(snake.pos.x==e.pos.x && snake.pos.y==e.pos.y){
@@ -293,8 +315,8 @@ function animateGame(){
         }else if(e.type=="bonus"){
           console.log("Ability: bonus");
           let temp=apples.push({pos:{x:0,y:0},size:board.cellSize/2,type:"normal",color:null});
-          randomizeApple(apples[temp-1],false);
           canDelete=false;
+          randomizeApple(apples[temp-1],canDelete);
 
         }else if(e.type=="portal"&&!snake.onSnake(e.destination)){
           console.log("Ability: portal");
@@ -312,8 +334,8 @@ function animateGame(){
             },100)
           }
         }
-        randomizeApple(e,canDelete);
         snake.increaseLength();
+        randomizeApple(e,canDelete);
       }
     })
   }
@@ -322,12 +344,13 @@ function animateGame(){
 }
 
 function randomizeApple(apple,canDelete=true){
-  if(canDelete&&apples.length>1&&Math.random()<apples.length*0.2){
+  if(canDelete && apples.length>1 && Math.random()<apples.length*0.1){//0.2
     apple.type="delete";
     console.log("Deleted: apple")
     appleCleanUp();
     return;
   }
+
   apple.destination=null;
   let count=0;
   do{
@@ -367,6 +390,7 @@ function randomizeApple(apple,canDelete=true){
     apple.color="rgba(170,170,0,0.5)";
   }
 }
+
 function portalDestination(entrance){
   let pos={x:0,y:0}
   do{
@@ -375,9 +399,11 @@ function portalDestination(entrance){
   }while(snake.onSnake(pos)||(pos.x==entrance.x&&pos.y==entrance.y))
   return pos;
 }
+
 function appleCleanUp(){
   apples=apples.filter(e=>e.type!="delete");
 }
+
 function onApple(apple){
   let bool=false;
   apples.forEach(e=>{
@@ -419,12 +445,13 @@ export function fillOnAngle(pos,dim,deg,color){
 }
 
 function drawNumber(numbers,value){
-  while(value>=10**numbers.length){
+  while(value>=10**numbers.length){ // increase digets
     numbers.push({...numbers[0]});
   }
-  while(value<10**(numbers.length-1) && numbers.length>1){
+  while(value<10**(numbers.length-1) && numbers.length>1){ // decrease digets
     numbers.pop();
   }
+
   let digetOffset=numbers[0].dx;
   for(let i=0;i<numbers.length;i++){
     numbers[i].i=Math.floor(value/10**(numbers.length-1-i))%10;
@@ -467,14 +494,19 @@ function onKeyDown(aEvent) {
       switch(EGameState.state){
         case EGameState.idle:
           EGameState.state=EGameState.playing;
+          hud.soundBtn.inactiv=true;
+          hud.playBtn.inactiv=true;
+          hud.homeInfo.inactiv=true;
           break;
         case EGameState.playing:
           EGameState.state=EGameState.pause;
+          hud.soundBtn.inactiv=false;
           snake.pause();
           drawGame();
           break;
         case EGameState.pause:
           EGameState.state=EGameState.playing;
+          hud.soundBtn.inactiv=true;
           snake.pause();
           drawGame();
           break;
@@ -532,7 +564,7 @@ function onButton(aEvent){
   let y=aEvent.offsetY;
   let btn=null;
   clickableBtn.forEach(e=>{
-    if((x>e.dx && x<e.dx+hud.compute(e).w)&&(y>e.dy && y<e.dy+e.sh)){btn=e;}
+    if((x>e.dx && x<e.dx+hud.compute(e).w)&&(y>e.dy && y<e.dy+e.sh)&&!e.inactiv){btn=e;}
   });
   return btn;
 }
@@ -549,6 +581,9 @@ function onClick(aEvent){
           newGame();
         }
         EGameState.state=EGameState.playing;
+        hud.soundBtn.inactiv=true;
+        hud.playBtn.inactiv=true;
+        hud.homeInfo.inactiv=true;
         break;
       case "home":
         if(EGameState.state==EGameState.gameOver){
